@@ -3,15 +3,21 @@ import { Job, ResumeAnalysis, JobMatch, SkillGap } from '../types';
 import { SYSTEM_INSTRUCTION_ANALYSIS, SYSTEM_INSTRUCTION_MATCHING, SYSTEM_INSTRUCTION_SKILL_GAP } from '../constants';
 
 // Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const apiKey = process.env.API_KEY || ''; // Fallback to avoid crash if undefined
+if (!apiKey) {
+  console.error("Gemini API Key is missing! Check your .env file or configuration.");
+}
+const ai = new GoogleGenAI({ apiKey });
 
-// Update to Gemini 3 Flash model as per guidelines
-const MODEL_NAME = 'gemini-3-flash-preview';
+// Using stable Gemini 1.5 Flash as 'gemini-2.5-flash' is not yet standard.
+const MODEL_NAME = 'gemini-1.5-flash';
 
 export const GeminiService = {
-  
+
   analyzeResume: async (base64Data: string, mimeType: string): Promise<ResumeAnalysis> => {
     try {
+      if (!apiKey) throw new Error("API Key is missing. Please configure VITE_GEMINI_API_KEY in .env");
+
       const response = await ai.models.generateContent({
         model: MODEL_NAME,
         contents: {
@@ -39,19 +45,19 @@ export const GeminiService = {
               detectedRole: { type: Type.STRING },
               topSkills: { type: Type.ARRAY, items: { type: Type.STRING } },
               experienceLevel: { type: Type.STRING },
-              
+
               skillsFeedback: { type: Type.STRING },
               skillsStatus: { type: Type.STRING, enum: ["Strong", "Improve", "Critical"] },
-              
+
               experienceFeedback: { type: Type.STRING },
               experienceStatus: { type: Type.STRING, enum: ["Strong", "Improve", "Critical"] },
-              
+
               keywordsFeedback: { type: Type.STRING },
               keywordsStatus: { type: Type.STRING, enum: ["Strong", "Improve", "Critical"] },
-              
+
               formattingFeedback: { type: Type.STRING },
               formattingStatus: { type: Type.STRING, enum: ["Strong", "Improve", "Critical"] },
-              
+
               improvementTips: { type: Type.ARRAY, items: { type: Type.STRING } }
             }
           }
@@ -60,12 +66,12 @@ export const GeminiService = {
 
       let text = response.text;
       if (!text) throw new Error("No response from AI");
-      
+
       // Clean markdown code blocks if present
       text = text.replace(/^```json\s*/, '').replace(/```$/, '');
 
       const parsed = JSON.parse(text);
-      
+
       // Return with defensive checks for arrays
       return {
         ...parsed,
@@ -73,9 +79,10 @@ export const GeminiService = {
         improvementTips: parsed.improvementTips || []
       } as ResumeAnalysis;
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Resume Analysis Error:", error);
-      throw new Error("Failed to analyze resume. Please try again.");
+      const errorMessage = error?.message || "Unknown error";
+      throw new Error(`Analysis failed: ${errorMessage}. Please check API key and Quota.`);
     }
   },
 
@@ -83,7 +90,7 @@ export const GeminiService = {
     try {
       // BATCHING: Process jobs in chunks to avoid hitting token limits
       // Reduced from 5 to 2 to prevent "Unterminated string" JSON errors on large outputs
-      const BATCH_SIZE = 2; 
+      const BATCH_SIZE = 2;
       const allMatches: JobMatch[] = [];
 
       // Defensive check: ensure topSkills exists
@@ -91,7 +98,7 @@ export const GeminiService = {
 
       for (let i = 0; i < availableJobs.length; i += BATCH_SIZE) {
         const batch = availableJobs.slice(i, i + BATCH_SIZE);
-        
+
         // Lightweight context for the prompt
         const jobContext = batch.map(j => ({
           id: j.id,
@@ -147,9 +154,9 @@ export const GeminiService = {
               allMatches.push(...result.matches);
             }
           } catch (e) {
-             console.error("Error parsing batch match results:", e);
-             console.log("Raw text was:", text.substring(0, 200) + "...");
-             // Continue to next batch instead of failing completely
+            console.error("Error parsing batch match results:", e);
+            console.log("Raw text was:", text.substring(0, 200) + "...");
+            // Continue to next batch instead of failing completely
           }
         }
       }
