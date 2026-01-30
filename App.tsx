@@ -8,6 +8,7 @@ import Login from './components/Login';
 import SignUp from './components/SignUp';
 import { JobService } from './services/jobService';
 import { GeminiService } from './services/geminiService';
+import { AnalysisService } from './services/analysisService';
 import { Job, CompleteAnalysis } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -40,6 +41,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
 };
 
 const AppContent: React.FC = () => {
+  const { user } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [analysis, setAnalysis] = useState<CompleteAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -77,6 +79,17 @@ const AppContent: React.FC = () => {
 
       // 2. Match with current jobs
       const matches = await GeminiService.matchJobs(resumeResult, jobs);
+
+      // 3. Save analysis to Firestore (if user is logged in)
+      if (user?.id) {
+        try {
+          await AnalysisService.saveAnalysis(user.id, resumeResult, matches);
+          console.log('Analysis saved to Firestore');
+        } catch (saveError) {
+          console.error('Error saving analysis (non-blocking):', saveError);
+          // Don't block the user from seeing results
+        }
+      }
 
       setAnalysis({
         resume: resumeResult,
