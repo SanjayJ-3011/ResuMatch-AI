@@ -42,6 +42,8 @@ export const AuthService = {
       email: email,
       name: name,
       role: 'user', // Default role
+      savedAnalyses: [], // Array of analysis doc IDs
+      lastAnalysisAt: null, // Last resume analysis timestamp
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
