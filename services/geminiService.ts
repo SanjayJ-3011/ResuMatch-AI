@@ -9,8 +9,8 @@ if (!apiKey) {
 }
 const ai = new GoogleGenAI({ apiKey });
 
-// Using stable Gemini 1.5 Flash as 'gemini-2.5-flash' is not yet standard.
-const MODEL_NAME = 'gemini-1.5-flash';
+// Using available Gemini 2.0 Flash
+const MODEL_NAME = 'gemini-2.0-flash';
 
 export const GeminiService = {
 
