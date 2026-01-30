@@ -9,8 +9,9 @@ if (!apiKey) {
 }
 const ai = new GoogleGenAI({ apiKey });
 
-// Using available Gemini 2.0 Flash
-const MODEL_NAME = 'gemini-2.0-flash';
+// Using stable Gemini 1.5 Flash for better reliability on free tier
+const MODEL_NAME = 'gemini-1.5-flash';
+
 
 export const GeminiService = {
 
@@ -82,15 +83,17 @@ export const GeminiService = {
     } catch (error: any) {
       console.error("Resume Analysis Error:", error);
       const errorMessage = error?.message || "Unknown error";
-      throw new Error(`Analysis failed: ${errorMessage}. Please check API key and Quota.`);
+      throw new Error(`The AI service is currently busy or quota has been reached (429). Please wait a moment or check your API limit.`);
+
     }
   },
 
   matchJobs: async (resumeAnalysis: ResumeAnalysis, availableJobs: Job[]): Promise<JobMatch[]> => {
     try {
       // BATCHING: Process jobs in chunks to avoid hitting token limits
-      // Reduced from 5 to 2 to prevent "Unterminated string" JSON errors on large outputs
-      const BATCH_SIZE = 2;
+      // Increased to 10 to reduce number of API calls and avoid "Quota Exceeded" errors
+      const BATCH_SIZE = 10;
+
       const allMatches: JobMatch[] = [];
 
       // Defensive check: ensure topSkills exists
