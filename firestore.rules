@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role == 'admin';
+    }
+    
+    // ============================================
+    // Users Collection
+    // - Users can read/write their own document
+    // - Admins can read any user document
+    // ============================================
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if false; // Users cannot delete their accounts via client
+    }
+    
+    // ============================================
+    // Jobs Collection
+    // - Anyone authenticated can read jobs
+    // - Only admins can create, update, delete jobs
+    // ============================================
+    match /jobs/{jobId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================
+    // Analyses Collection
+    // - Users can only read/write their own analyses
+    // - Admins can read any analysis (for support)
+    // ============================================
+    match /analyses/{analysisId} {
+      allow read: if isAuthenticated() && 
+                    (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && 
+                     request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && 
+                     resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && 
+                     resource.data.userId == request.auth.uid;
+    }
+  }
+}
