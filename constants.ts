@@ -106,7 +106,7 @@ Based on the candidate's resume and a target job role, provide a valid JSON obje
     {
       "skill": "Name of skill",
       "importance": "High" | "Medium" | "Low",
-      "recommendation": "Actionable advice on how to improve this specific skill (e.g., specific project or concept to learn)"
+      "recommendation": "Provide specific, actionable career advice. E.g., 'Build a project using [Skill]', 'Get [Specific] certification', or 'Contribute to open source'. Focus on practical application to bridge the gap."
     }
   ]
 }
