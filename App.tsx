@@ -43,15 +43,29 @@ const AppContent: React.FC = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [analysis, setAnalysis] = useState<CompleteAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Load jobs on mount
+  const loadJobs = async () => {
+    try {
+      setIsLoadingJobs(true);
+      const fetchedJobs = await JobService.getAllJobs();
+      setJobs(fetchedJobs);
+    } catch (err) {
+      console.error('Error loading jobs:', err);
+    } finally {
+      setIsLoadingJobs(false);
+    }
+  };
+
   useEffect(() => {
-    // Load jobs on mount
-    setJobs(JobService.getAllJobs());
+    loadJobs();
   }, []);
 
-  const handleJobsUpdate = (updatedJobs: Job[]) => {
-    setJobs(updatedJobs);
+  const handleJobsUpdate = () => {
+    // Reload jobs from Firestore
+    loadJobs();
   };
 
   const handleFileUpload = async (base64: string, mimeType: string) => {
