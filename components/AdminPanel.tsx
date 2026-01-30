@@ -10,6 +10,8 @@ interface AdminPanelProps {
 const AdminPanel: React.FC<AdminPanelProps> = ({ jobs, onUpdate }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
   const [newJob, setNewJob] = useState<Partial<Job>>({
     title: '',
     company: '',
@@ -36,6 +38,30 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ jobs, onUpdate }) => {
     }
   };
 
+  const handleToggleStatus = async (id: string, currentStatus: boolean = true) => {
+    try {
+      await JobService.toggleJobActive(id, !currentStatus);
+      onUpdate();
+    } catch (error) {
+      console.error('Error toggling job status:', error);
+      alert('Failed to update job status.');
+    }
+  };
+
+  const handleEdit = (job: Job) => {
+    setNewJob({
+      title: job.title,
+      company: job.company,
+      location: job.location,
+      type: job.type,
+      description: job.description,
+      requirements: job.requirements,
+      salaryRange: job.salaryRange
+    });
+    setEditingId(job.id);
+    setIsAdding(true);
+  };
+
   const handleReset = async () => {
     if (confirm('Reset to default demo jobs?')) {
       setIsLoading(true);
@@ -51,6 +77,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ jobs, onUpdate }) => {
     }
   };
 
+  const handleCancel = () => {
+    setIsAdding(false);
+    setEditingId(null);
+    setNewJob({ title: '', company: '', location: '', type: 'Full-time', description: '', requirements: [], salaryRange: '' });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -64,13 +96,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ jobs, onUpdate }) => {
         requirements: newJob.requirements || [],
         salaryRange: newJob.salaryRange || 'Competitive'
       };
-      await JobService.addJob(jobData);
+
+      if (editingId) {
+        await JobService.updateJob(editingId, jobData);
+      } else {
+        await JobService.addJob(jobData);
+      }
+
       onUpdate();
-      setIsAdding(false);
-      setNewJob({ title: '', company: '', location: '', type: 'Full-time', description: '', requirements: [], salaryRange: '' });
+      handleCancel();
     } catch (error) {
-      console.error('Error adding job:', error);
-      alert('Failed to add job. Please try again.');
+      console.error('Error saving job:', error);
+      alert('Failed to save job. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +132,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ jobs, onUpdate }) => {
             Reset Defaults
           </button>
           <button
-            onClick={() => setIsAdding(!isAdding)}
+            onClick={() => {
+              if (isAdding) handleCancel();
+              else setIsAdding(true);
+            }}
             className="px-5 py-2 bg-gray-100 text-gray-900 text-sm font-semibold rounded-lg hover:bg-white shadow-lg transition-all hover:-translate-y-0.5"
           >
             {isAdding ? 'Cancel' : '+ New Job'}
@@ -106,7 +146,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ jobs, onUpdate }) => {
       {isAdding && (
         <div className="bg-gray-800 p-8 rounded-3xl border border-gray-700 shadow-xl animate-in fade-in slide-in-from-top-4 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gray-100"></div>
-          <h3 className="text-lg font-bold text-white mb-6">Create New Position</h3>
+          <h3 className="text-lg font-bold text-white mb-6">{editingId ? 'Edit Position' : 'Create New Position'}</h3>
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div className="space-y-1">
@@ -190,8 +230,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ jobs, onUpdate }) => {
               </div>
             </div>
 
-            <div className="flex justify-end pt-6 border-t border-gray-700">
-              <button type="submit" className="px-8 py-3 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-500 shadow-md hover:shadow-lg transition-all">Save Position</button>
+            <div className="flex justify-end pt-6 border-t border-gray-700 gap-3">
+              <button type="button" onClick={handleCancel} className="px-6 py-3 bg-gray-800 text-gray-300 font-bold rounded-xl hover:bg-gray-700 transition-all">Cancel</button>
+              <button type="submit" className="px-8 py-3 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-500 shadow-md hover:shadow-lg transition-all">
+                {editingId ? 'Update Position' : 'Save Position'}
+              </button>
             </div>
           </form>
         </div>
@@ -201,6 +244,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ jobs, onUpdate }) => {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-gray-700 bg-gray-900/50">
+              <th className="p-6 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
               <th className="p-6 text-xs font-bold text-gray-400 uppercase tracking-wider">Role</th>
               <th className="p-6 text-xs font-bold text-gray-400 uppercase tracking-wider">Company & Location</th>
               <th className="p-6 text-xs font-bold text-gray-400 uppercase tracking-wider">Details</th>
@@ -210,6 +254,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ jobs, onUpdate }) => {
           <tbody className="divide-y divide-gray-700">
             {jobs.map(job => (
               <tr key={job.id} className="group hover:bg-gray-700/30 transition-colors">
+                <td className="p-6">
+                  <button
+                    onClick={() => handleToggleStatus(job.id, job.isActive)}
+                    className={`w-3 h-3 rounded-full ${job.isActive !== false ? 'bg-success-400 shadow-[0_0_8px_rgba(74,222,128,0.5)]' : 'bg-gray-600'} transition-all`}
+                    title={job.isActive !== false ? "Active" : "Inactive"}
+                  />
+                </td>
                 <td className="p-6">
                   <div className="font-bold text-white">{job.title}</div>
                   <div className="text-xs text-gray-500 mt-0.5 font-mono">{job.id}</div>
@@ -225,9 +276,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ jobs, onUpdate }) => {
                   </div>
                 </td>
                 <td className="p-6 text-right">
-                  <button onClick={() => handleDelete(job.id)} className="text-gray-600 hover:text-error-400 transition-colors p-2 rounded-lg hover:bg-error-900/20">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                  </button>
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => handleEdit(job)} className="text-gray-400 hover:text-brand-300 transition-colors p-2 rounded-lg hover:bg-brand-900/20" title="Edit">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    </button>
+                    <button onClick={() => handleDelete(job.id)} className="text-gray-400 hover:text-error-400 transition-colors p-2 rounded-lg hover:bg-error-900/20" title="Delete">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

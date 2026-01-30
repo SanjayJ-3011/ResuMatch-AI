@@ -7,6 +7,7 @@ export interface Job {
   description: string;
   requirements: string[];
   salaryRange?: string;
+  isActive?: boolean;
 }
 
 export interface SkillGap {
@@ -29,20 +30,20 @@ export interface ResumeAnalysis {
   detectedRole: string;
   topSkills: string[];
   experienceLevel: string;
-  
+
   // Section-wise structured feedback
   skillsFeedback: string;
   skillsStatus: 'Strong' | 'Improve' | 'Critical';
-  
+
   experienceFeedback: string;
   experienceStatus: 'Strong' | 'Improve' | 'Critical';
-  
+
   keywordsFeedback: string;
   keywordsStatus: 'Strong' | 'Improve' | 'Critical';
-  
+
   formattingFeedback: string;
   formattingStatus: 'Strong' | 'Improve' | 'Critical';
-  
+
   improvementTips: string[];
 }
 
