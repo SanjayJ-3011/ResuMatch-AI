@@ -17,32 +17,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session on mount
-    const currentUser = AuthService.getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-    }
-    setIsLoading(false);
+    // Subscribe to auth state changes
+    const unsubscribe = AuthService.onAuthStateChanged((user) => {
+      setUser(user);
+      setIsLoading(false);
+    });
+
+    // Cleanup subscription
+    return () => unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
-    const user = await AuthService.login(email, password);
-    setUser(user);
+    await AuthService.login(email, password);
   };
 
   const logout = () => {
     AuthService.logout();
-    setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated: !!user, 
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated: !!user,
       isAdmin: user?.role === 'admin',
-      login, 
+      login,
       logout,
-      isLoading 
+      isLoading
     }}>
       {children}
     </AuthContext.Provider>
