@@ -1,0 +1,5 @@
+{
+  "name": "ResuMatch AI",
+  "description": "An intelligent portfolio-grade resume analyzer, job matcher, and skill guidance platform using Gemini AI.",
+  "requestFramePermissions": []
+}
