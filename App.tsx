@@ -6,9 +6,10 @@ import Dashboard from './components/Dashboard';
 import AdminPanel from './components/AdminPanel';
 import Login from './components/Login';
 import SignUp from './components/SignUp';
+import AnalysisHistory from './components/AnalysisHistory';
 import { JobService } from './services/jobService';
 import { GeminiService } from './services/geminiService';
-import { AnalysisService } from './services/analysisService';
+import { AnalysisService, SavedAnalysis } from './services/analysisService';
 import { Job, CompleteAnalysis } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -44,8 +45,10 @@ const AppContent: React.FC = () => {
   const { user } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [analysis, setAnalysis] = useState<CompleteAnalysis | null>(null);
+  const [history, setHistory] = useState<SavedAnalysis[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isLoadingJobs, setIsLoadingJobs] = useState(true);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Load jobs on mount
@@ -61,6 +64,26 @@ const AppContent: React.FC = () => {
     }
   };
 
+  // Load history when user changes
+  useEffect(() => {
+    const loadHistory = async () => {
+      if (user?.id) {
+        setIsLoadingHistory(true);
+        try {
+          const pastAnalyses = await AnalysisService.getUserAnalyses(user.id);
+          setHistory(pastAnalyses);
+        } catch (e) {
+          console.error('Error loading history:', e);
+        } finally {
+          setIsLoadingHistory(false);
+        }
+      } else {
+        setHistory([]);
+      }
+    };
+    loadHistory();
+  }, [user]);
+
   useEffect(() => {
     loadJobs();
   }, []);
@@ -68,6 +91,13 @@ const AppContent: React.FC = () => {
   const handleJobsUpdate = () => {
     // Reload jobs from Firestore
     loadJobs();
+  };
+
+  const handleSelectAnalysis = (saved: SavedAnalysis) => {
+    setAnalysis({
+      resume: saved.fullAnalysis,
+      matches: saved.matches
+    });
   };
 
   const handleFileUpload = async (base64: string, mimeType: string) => {
@@ -156,6 +186,19 @@ const AppContent: React.FC = () => {
                     <div className="mt-8 p-4 bg-error-900/20 text-error-300 rounded-xl border border-error-800 text-sm font-medium flex items-center shadow-sm max-w-md mx-auto">
                       <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       {error}
+                    </div>
+                  )}
+
+                  {/* Recent Analyses */}
+                  {(history.length > 0 || isLoadingHistory) && (
+                    <div className="w-full max-w-2xl mt-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+                      <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-2xl p-6">
+                        <AnalysisHistory
+                          analyses={history}
+                          onSelect={handleSelectAnalysis}
+                          isLoading={isLoadingHistory}
+                        />
+                      </div>
                     </div>
                   )}
 
