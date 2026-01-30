@@ -5,6 +5,7 @@ import FileUpload from './components/FileUpload';
 import Dashboard from './components/Dashboard';
 import AdminPanel from './components/AdminPanel';
 import Login from './components/Login';
+import SignUp from './components/SignUp';
 import { JobService } from './services/jobService';
 import { GeminiService } from './services/geminiService';
 import { Job, CompleteAnalysis } from './types';
@@ -59,10 +60,10 @@ const AppContent: React.FC = () => {
     try {
       // 1. Analyze Resume
       const resumeResult = await GeminiService.analyzeResume(base64, mimeType);
-      
+
       // 2. Match with current jobs
       const matches = await GeminiService.matchJobs(resumeResult, jobs);
-      
+
       setAnalysis({
         resume: resumeResult,
         matches: matches
@@ -79,7 +80,8 @@ const AppContent: React.FC = () => {
     <Layout>
       <Routes>
         <Route path="/login" element={<Login />} />
-        
+        <Route path="/signup" element={<SignUp />} />
+
         <Route path="/" element={
           <ProtectedRoute>
             {!analysis ? (
@@ -90,7 +92,7 @@ const AppContent: React.FC = () => {
                 <div className="absolute top-[100px] left-[-50px] w-72 h-72 bg-brand-900/20 rounded-full blur-3xl -z-10"></div>
 
                 <div className="max-w-5xl mx-auto px-6 pt-20 pb-32 flex flex-col items-center text-center animate-in fade-in duration-700">
-                  
+
                   {/* Badge */}
                   <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-800/50 border border-gray-700 shadow-sm mb-8 transition-transform hover:scale-105 backdrop-blur-md">
                     <span className="w-2 h-2 rounded-full bg-brand-400 mr-2 animate-pulse"></span>
@@ -99,7 +101,7 @@ const AppContent: React.FC = () => {
 
                   {/* Headline */}
                   <h1 className="text-5xl md:text-6xl font-extrabold text-white tracking-tight leading-tight mb-6">
-                    Find the jobs <br/>
+                    Find the jobs <br />
                     <span className="text-gradient">you were meant for.</span>
                   </h1>
 
@@ -107,7 +109,7 @@ const AppContent: React.FC = () => {
                   <p className="text-lg md:text-xl text-gray-400 max-w-2xl mb-12 leading-relaxed">
                     Stop applying blindly. Upload your resume to get instant ATS feedback, precision job matching, and a personalized skill improvement plan.
                   </p>
-                  
+
                   {/* Upload Section */}
                   <div className="w-full max-w-2xl">
                     <FileUpload onUpload={handleFileUpload} isLoading={isAnalyzing} />
@@ -117,12 +119,12 @@ const AppContent: React.FC = () => {
                   {isAnalyzing && (
                     <div className="mt-8 flex flex-col items-center animate-pulse gap-3">
                       <div className="h-1 w-48 bg-gray-800 rounded-full overflow-hidden border border-gray-700">
-                        <div className="h-full bg-brand-500 animate-[width_1s_ease-in-out_infinite]" style={{width: '30%'}}></div>
+                        <div className="h-full bg-brand-500 animate-[width_1s_ease-in-out_infinite]" style={{ width: '30%' }}></div>
                       </div>
                       <p className="text-gray-400 font-medium text-sm">Analyzing your profile & matching jobs...</p>
                     </div>
                   )}
-                  
+
                   {error && (
                     <div className="mt-8 p-4 bg-error-900/20 text-error-300 rounded-xl border border-error-800 text-sm font-medium flex items-center shadow-sm max-w-md mx-auto">
                       <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -134,30 +136,30 @@ const AppContent: React.FC = () => {
                   <div className="mt-20 pt-10 border-t border-gray-800 w-full flex flex-col items-center">
                     <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-6">Trusted Technology</p>
                     <div className="flex gap-8 opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
-                        <span className="text-xl font-bold text-gray-400 flex items-center gap-2"><div className="w-6 h-6 bg-gray-600 rounded-full"></div>Gemini 3.0</span>
-                        <span className="text-xl font-bold text-gray-400 flex items-center gap-2"><div className="w-6 h-6 bg-gray-600 rounded-full"></div>Google Cloud</span>
+                      <span className="text-xl font-bold text-gray-400 flex items-center gap-2"><div className="w-6 h-6 bg-gray-600 rounded-full"></div>Gemini 3.0</span>
+                      <span className="text-xl font-bold text-gray-400 flex items-center gap-2"><div className="w-6 h-6 bg-gray-600 rounded-full"></div>Google Cloud</span>
                     </div>
                   </div>
                 </div>
               </div>
             ) : (
-              <Dashboard 
-                analysis={analysis} 
-                jobs={jobs} 
-                onReset={() => setAnalysis(null)} 
+              <Dashboard
+                analysis={analysis}
+                jobs={jobs}
+                onReset={() => setAnalysis(null)}
               />
             )}
           </ProtectedRoute>
         } />
-        
+
         <Route path="/admin" element={
-          <ProtectedRoute>
+          <ProtectedRoute requireAdmin={true}>
             <div className="max-w-7xl mx-auto px-6 py-12">
-               <AdminPanel jobs={jobs} onUpdate={handleJobsUpdate} />
+              <AdminPanel jobs={jobs} onUpdate={handleJobsUpdate} />
             </div>
           </ProtectedRoute>
         } />
-        
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
